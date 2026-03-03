@@ -80,21 +80,6 @@ export function useExtensionMessages(
   const layoutReadyRef = useRef(false)
 
   useEffect(() => {
-    // Browser standalone mode (outside VS Code webview): bootstrap a demo office.
-    if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi !== 'function') {
-      const os = getOfficeState()
-      if (!layoutReadyRef.current) {
-        os.addAgent(1, 0, 0, undefined, true, 'Demo-A')
-        os.addAgent(2, 1, 0, undefined, true, 'Demo-B')
-        setAgents([1, 2])
-        setSelectedAgent(1)
-        setWorkspaceFolders([{ name: 'Demo-A', path: '/demo/a' }, { name: 'Demo-B', path: '/demo/b' }])
-        layoutReadyRef.current = true
-        setLayoutReady(true)
-      }
-      return
-    }
-
     // Buffer agents from existingAgents until layout is loaded
     let pendingAgents: Array<{ id: number; palette?: number; hueShift?: number; seatId?: string; folderName?: string }> = []
 
