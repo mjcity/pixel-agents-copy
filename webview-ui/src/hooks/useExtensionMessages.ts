@@ -50,6 +50,7 @@ export interface ExtensionMessageState {
   layoutReady: boolean
   loadedAssets?: { catalog: FurnitureAsset[]; sprites: Record<string, string[][]> }
   workspaceFolders: WorkspaceFolder[]
+  liveFeed: string[]
 }
 
 function saveAgentSeats(os: OfficeState): void {
@@ -75,6 +76,7 @@ export function useExtensionMessages(
   const [layoutReady, setLayoutReady] = useState(false)
   const [loadedAssets, setLoadedAssets] = useState<{ catalog: FurnitureAsset[]; sprites: Record<string, string[][]> } | undefined>()
   const [workspaceFolders, setWorkspaceFolders] = useState<WorkspaceFolder[]>([])
+  const [liveFeed, setLiveFeed] = useState<string[]>([])
 
   // Track whether initial layout has been loaded (ref to avoid re-render)
   const layoutReadyRef = useRef(false)
@@ -89,11 +91,15 @@ export function useExtensionMessages(
       const applyStatus = (status: string, task?: string) => {
         const mainId = 1
         const label = task || status
+        const stamp = new Date().toLocaleTimeString()
+        const pushFeed = (line: string) => setLiveFeed((prev) => [`${stamp} • ${line}`, ...prev].slice(0, 20))
+
         if (status === 'working' || status === 'reading') {
           os.setAgentActive(mainId, true)
           os.setAgentTool(mainId, status === 'reading' ? 'Read' : 'Write')
           os.sendToSeat(mainId)
           setAgentStatuses((prev) => ({ ...prev, [mainId]: label }))
+          pushFeed(`Working: ${label}`)
           return
         }
 
@@ -106,6 +112,7 @@ export function useExtensionMessages(
           if (doneTimer) window.clearTimeout(doneTimer)
           doneTimer = window.setTimeout(() => os.sendToSeat(mainId), 5000)
           setAgentStatuses((prev) => ({ ...prev, [mainId]: 'Task dropped off' }))
+          pushFeed(`Done: ${label} (drop-off)`)
           return
         }
 
@@ -113,6 +120,7 @@ export function useExtensionMessages(
         os.setAgentTool(mainId, null)
         os.sendToSeat(mainId)
         setAgentStatuses((prev) => ({ ...prev, [mainId]: 'idle' }))
+        pushFeed('Idle')
       }
 
       const poll = async () => {
@@ -428,5 +436,5 @@ export function useExtensionMessages(
     return () => window.removeEventListener('message', handler)
   }, [getOfficeState])
 
-  return { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets, workspaceFolders }
+  return { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets, workspaceFolders, liveFeed }
 }

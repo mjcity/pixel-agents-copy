@@ -121,7 +121,7 @@ function App() {
 
   const isEditDirty = useCallback(() => editor.isEditMode && editor.isDirty, [editor.isEditMode, editor.isDirty])
 
-  const { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets, workspaceFolders } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty)
+  const { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets, workspaceFolders, liveFeed } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty)
 
   const [isDebugMode, setIsDebugMode] = useState(false)
 
@@ -284,6 +284,44 @@ function App() {
           />
         )
       })()}
+
+      <div
+        style={{
+          position: 'absolute',
+          right: 10,
+          top: 10,
+          width: 290,
+          maxHeight: '78vh',
+          overflow: 'auto',
+          zIndex: 60,
+          background: 'rgba(7, 11, 18, 0.92)',
+          border: '2px solid var(--pixel-border)',
+          padding: '8px',
+          boxShadow: 'var(--pixel-shadow)',
+          fontSize: 12,
+        }}
+      >
+        <div style={{ color: 'var(--pixel-accent)', fontWeight: 700, marginBottom: 6 }}>Live Ops Panel</div>
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ color: 'var(--pixel-text-dim)', marginBottom: 3 }}>Desks</div>
+          <div>{officeState.seats.size} total seats</div>
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ color: 'var(--pixel-text-dim)', marginBottom: 3 }}>Agents</div>
+          {agents.map((id) => (
+            <div key={id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1f2937', padding: '2px 0' }}>
+              <span>Agent {id}</span>
+              <span>{agentStatuses[id] || 'active'}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{ color: 'var(--pixel-text-dim)', marginBottom: 3 }}>Event Feed</div>
+          {(liveFeed.length ? liveFeed : ['No events yet']).map((line, i) => (
+            <div key={i} style={{ borderBottom: '1px dashed #334155', padding: '2px 0', color: '#cbd5e1' }}>{line}</div>
+          ))}
+        </div>
+      </div>
 
       <ToolOverlay
         officeState={officeState}
