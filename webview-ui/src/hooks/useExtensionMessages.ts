@@ -83,16 +83,69 @@ export function useExtensionMessages(
     // Browser standalone mode (outside VS Code webview): bootstrap a demo office.
     if (typeof window !== 'undefined' && typeof window.acquireVsCodeApi !== 'function') {
       const os = getOfficeState()
+      let doneTimer: number | null = null
+      let lastStamp = ''
+
+      const applyStatus = (status: string, task?: string) => {
+        const mainId = 1
+        const label = task || status
+        if (status === 'working' || status === 'reading') {
+          os.setAgentActive(mainId, true)
+          os.setAgentTool(mainId, status === 'reading' ? 'Read' : 'Write')
+          os.sendToSeat(mainId)
+          setAgentStatuses((prev) => ({ ...prev, [mainId]: label }))
+          return
+        }
+
+        if (status === 'done') {
+          os.setAgentActive(mainId, false)
+          os.setAgentTool(mainId, null)
+          // Drop-off behavior: walk to far side "other room" tile, pause, return to seat.
+          const layout = os.getLayout()
+          os.walkToTile(mainId, Math.max(1, layout.cols - 3), 1)
+          if (doneTimer) window.clearTimeout(doneTimer)
+          doneTimer = window.setTimeout(() => os.sendToSeat(mainId), 5000)
+          setAgentStatuses((prev) => ({ ...prev, [mainId]: 'Task dropped off' }))
+          return
+        }
+
+        os.setAgentActive(mainId, false)
+        os.setAgentTool(mainId, null)
+        os.sendToSeat(mainId)
+        setAgentStatuses((prev) => ({ ...prev, [mainId]: 'idle' }))
+      }
+
+      const poll = async () => {
+        try {
+          const res = await fetch(`./live-status.json?ts=${Date.now()}`, { cache: 'no-store' })
+          if (!res.ok) return
+          const data = await res.json()
+          const stamp = String(data.updated_at || '')
+          if (!stamp || stamp === lastStamp) return
+          lastStamp = stamp
+          applyStatus(String(data.status || 'idle'), String(data.task || ''))
+        } catch {
+          // ignore demo polling errors
+        }
+      }
+
       if (!layoutReadyRef.current) {
-        os.addAgent(1, 0, 0, undefined, true, 'Demo-A')
-        os.addAgent(2, 1, 0, undefined, true, 'Demo-B')
+        os.addAgent(1, 0, 0, undefined, true, 'MjcityBot')
+        os.addAgent(2, 1, 0, undefined, true, 'Support')
         setAgents([1, 2])
         setSelectedAgent(1)
-        setWorkspaceFolders([{ name: 'Demo-A', path: '/demo/a' }, { name: 'Demo-B', path: '/demo/b' }])
+        setWorkspaceFolders([{ name: 'MjcityBot', path: '/live' }, { name: 'Support', path: '/ops' }])
+        setAgentStatuses({ 1: 'idle', 2: 'idle' })
         layoutReadyRef.current = true
         setLayoutReady(true)
+        poll()
       }
-      return
+
+      const id = window.setInterval(poll, 2000)
+      return () => {
+        window.clearInterval(id)
+        if (doneTimer) window.clearTimeout(doneTimer)
+      }
     }
 
     // Buffer agents from existingAgents until layout is loaded
