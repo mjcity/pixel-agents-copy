@@ -1,9 +1,20 @@
 {
-  "status": "done",
+  "status": "reading",
   "task": "Conversation info (untrusted metadata): ```json {   \"timestamp\": \"Tue 2026-03-03 19:11 EST\" } ```  While you were workin",
   "started_at": "2026-03-04T00:12:09Z",
-  "updated_at": "2026-03-04T00:12:56Z",
-  "elapsed_sec": 47,
-  "outcome": "success",
-  "helpers": []
+  "updated_at": "2026-03-04T00:12:57Z",
+  "elapsed_sec": 48,
+  "outcome": "pending",
+  "helpers": [
+    {
+      "id": 2,
+      "status": "reading",
+      "task": "Tool output parsing"
+    },
+    {
+      "id": 3,
+      "status": "working",
+      "task": "Task execution"
+    }
+  ]
 }
