@@ -1,20 +1,9 @@
 {
-  "status": "reading",
+  "status": "done",
   "task": "Waiting for request",
-  "started_at": "2026-03-04T00:09:37Z",
-  "updated_at": "2026-03-04T00:09:37Z",
+  "started_at": "2026-03-04T00:09:44Z",
+  "updated_at": "2026-03-04T00:09:44Z",
   "elapsed_sec": 0,
-  "outcome": "pending",
-  "helpers": [
-    {
-      "id": 2,
-      "status": "reading",
-      "task": "Tool output parsing"
-    },
-    {
-      "id": 3,
-      "status": "working",
-      "task": "Task execution"
-    }
-  ]
+  "outcome": "success",
+  "helpers": []
 }
