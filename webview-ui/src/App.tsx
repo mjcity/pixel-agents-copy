@@ -121,7 +121,7 @@ function App() {
 
   const isEditDirty = useCallback(() => editor.isEditMode && editor.isDirty, [editor.isEditMode, editor.isDirty])
 
-  const { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets, workspaceFolders, liveFeed } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty)
+  const { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets, workspaceFolders, liveFeed, liveMeta } = useExtensionMessages(getOfficeState, editor.setLastSavedLayout, isEditDirty)
 
   const [isDebugMode, setIsDebugMode] = useState(false)
 
@@ -303,6 +303,18 @@ function App() {
         }}
       >
         <div style={{ color: '#22d3ee', fontWeight: 700, marginBottom: 6 }}>Live Ops Panel</div>
+        <div style={{ marginBottom: 8, border: '1px solid #334155', padding: 6 }}>
+          <div style={{ color: '#cbd5e1', marginBottom: 3 }}>Task Card</div>
+          <div style={{ fontWeight: 700 }}>{liveMeta.task || 'Waiting for request'}</div>
+          <div style={{ color: '#93c5fd' }}>Status: {liveMeta.status}</div>
+          <div style={{ color: '#cbd5e1' }}>Elapsed: {Math.max(0, Math.floor(liveMeta.elapsedSec || 0))}s</div>
+          <div style={{ color: liveMeta.outcome === 'success' ? '#34d399' : '#fbbf24', fontWeight: 700 }}>Outcome: {liveMeta.outcome || 'pending'}</div>
+          {liveMeta.status === 'done' && <div style={{ marginTop: 4, color: '#34d399' }}>✅ Task Delivered</div>}
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ color: '#cbd5e1', marginBottom: 3 }}>Rooms</div>
+          <div>Inbox • Build • QA • Done Room</div>
+        </div>
         <div style={{ marginBottom: 8 }}>
           <div style={{ color: '#cbd5e1', marginBottom: 3 }}>Desks</div>
           <div>{officeState.seats.size} total seats</div>

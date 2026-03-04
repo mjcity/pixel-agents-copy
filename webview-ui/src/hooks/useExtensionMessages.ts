@@ -51,6 +51,14 @@ export interface ExtensionMessageState {
   loadedAssets?: { catalog: FurnitureAsset[]; sprites: Record<string, string[][]> }
   workspaceFolders: WorkspaceFolder[]
   liveFeed: string[]
+  liveMeta: {
+    status: string
+    task: string
+    startedAt: string
+    updatedAt: string
+    elapsedSec: number
+    outcome: string
+  }
 }
 
 function saveAgentSeats(os: OfficeState): void {
@@ -77,6 +85,7 @@ export function useExtensionMessages(
   const [loadedAssets, setLoadedAssets] = useState<{ catalog: FurnitureAsset[]; sprites: Record<string, string[][]> } | undefined>()
   const [workspaceFolders, setWorkspaceFolders] = useState<WorkspaceFolder[]>([])
   const [liveFeed, setLiveFeed] = useState<string[]>([])
+  const [liveMeta, setLiveMeta] = useState({ status: 'idle', task: 'Waiting for request', startedAt: '', updatedAt: '', elapsedSec: 0, outcome: 'pending' })
 
   // Track whether initial layout has been loaded (ref to avoid re-render)
   const layoutReadyRef = useRef(false)
@@ -88,38 +97,86 @@ export function useExtensionMessages(
       let doneTimer: number | null = null
       let lastStamp = ''
 
-      const applyStatus = (status: string, task?: string) => {
+      const rooms = {
+        inbox: { col: 2, row: 2 },
+        build: { col: 6, row: 4 },
+        qa: { col: 10, row: 4 },
+        done: { col: 14, row: 2 },
+      }
+
+      const applyStatus = (status: string, task?: string, raw?: { started_at?: string; updated_at?: string; elapsed_sec?: number; outcome?: string; helpers?: Array<{ id?: number; status?: string; task?: string }> }) => {
         const mainId = 1
         const label = task || status
         const stamp = new Date().toLocaleTimeString()
         const pushFeed = (line: string) => setLiveFeed((prev) => [`${stamp} • ${line}`, ...prev].slice(0, 20))
 
-        if (status === 'working' || status === 'reading') {
+        setLiveMeta({
+          status,
+          task: label,
+          startedAt: String(raw?.started_at || ''),
+          updatedAt: String(raw?.updated_at || ''),
+          elapsedSec: Number(raw?.elapsed_sec || 0),
+          outcome: String(raw?.outcome || 'pending'),
+        })
+
+        // Helper agents for parallel tasks
+        const helpers = raw?.helpers || []
+        if (helpers.length > 0) {
+          setAgentStatuses((prev) => {
+            const next = { ...prev }
+            helpers.slice(0, 2).forEach((h, idx) => {
+              const id = idx + 2
+              next[id] = h.status || 'helper'
+              const r = h.status === 'reading' ? rooms.qa : rooms.build
+              os.setAgentActive(id, true)
+              os.setAgentTool(id, h.status === 'reading' ? 'Read' : 'Write')
+              os.walkToTile(id, r.col + idx, r.row + idx)
+            })
+            return next
+          })
+        }
+
+        if (status === 'working') {
           os.setAgentActive(mainId, true)
-          os.setAgentTool(mainId, status === 'reading' ? 'Read' : 'Write')
-          os.sendToSeat(mainId)
-          setAgentStatuses((prev) => ({ ...prev, [mainId]: label }))
-          pushFeed(`Working: ${label}`)
+          os.setAgentTool(mainId, 'Write')
+          os.walkToTile(mainId, rooms.build.col, rooms.build.row)
+          setAgentStatuses((prev) => ({ ...prev, [mainId]: `Build • ${label}` }))
+          pushFeed(`Build: ${label}`)
+          return
+        }
+
+        if (status === 'reading') {
+          os.setAgentActive(mainId, true)
+          os.setAgentTool(mainId, 'Read')
+          os.walkToTile(mainId, rooms.qa.col, rooms.qa.row)
+          setAgentStatuses((prev) => ({ ...prev, [mainId]: `QA • ${label}` }))
+          pushFeed(`QA: ${label}`)
           return
         }
 
         if (status === 'done') {
           os.setAgentActive(mainId, false)
           os.setAgentTool(mainId, null)
-          // Drop-off behavior: walk to far side "other room" tile, pause, return to seat.
-          const layout = os.getLayout()
-          os.walkToTile(mainId, Math.max(1, layout.cols - 3), 1)
+          os.walkToTile(mainId, rooms.done.col, rooms.done.row)
           if (doneTimer) window.clearTimeout(doneTimer)
           doneTimer = window.setTimeout(() => os.sendToSeat(mainId), 5000)
-          setAgentStatuses((prev) => ({ ...prev, [mainId]: 'Task dropped off' }))
+          setAgentStatuses((prev) => ({ ...prev, [mainId]: 'Done Room • Dropped off' }))
           pushFeed(`Done: ${label} (drop-off)`)
+
+          // notification polish: browser beep
+          try {
+            const ac = new (window.AudioContext || (window as any).webkitAudioContext)()
+            const o = ac.createOscillator(); const g = ac.createGain()
+            o.type = 'sine'; o.frequency.value = 880; g.gain.value = 0.05
+            o.connect(g); g.connect(ac.destination); o.start(); o.stop(ac.currentTime + 0.12)
+          } catch {}
           return
         }
 
         os.setAgentActive(mainId, false)
         os.setAgentTool(mainId, null)
-        os.sendToSeat(mainId)
-        setAgentStatuses((prev) => ({ ...prev, [mainId]: 'idle' }))
+        os.walkToTile(mainId, rooms.inbox.col, rooms.inbox.row)
+        setAgentStatuses((prev) => ({ ...prev, [mainId]: 'Inbox • idle' }))
         pushFeed('Idle')
       }
 
@@ -131,7 +188,7 @@ export function useExtensionMessages(
           const stamp = String(data.updated_at || '')
           if (!stamp || stamp === lastStamp) return
           lastStamp = stamp
-          applyStatus(String(data.status || 'idle'), String(data.task || ''))
+          applyStatus(String(data.status || 'idle'), String(data.task || ''), data)
         } catch {
           // ignore demo polling errors
         }
@@ -139,11 +196,12 @@ export function useExtensionMessages(
 
       if (!layoutReadyRef.current) {
         os.addAgent(1, 0, 0, undefined, true, 'MjcityBot')
-        os.addAgent(2, 1, 0, undefined, true, 'Support')
-        setAgents([1, 2])
+        os.addAgent(2, 1, 0, undefined, true, 'Helper-A')
+        os.addAgent(3, 2, 0, undefined, true, 'Helper-B')
+        setAgents([1, 2, 3])
         setSelectedAgent(1)
-        setWorkspaceFolders([{ name: 'MjcityBot', path: '/live' }, { name: 'Support', path: '/ops' }])
-        setAgentStatuses({ 1: 'idle', 2: 'idle' })
+        setWorkspaceFolders([{ name: 'MjcityBot', path: '/live' }, { name: 'Helper-A', path: '/ops/a' }, { name: 'Helper-B', path: '/ops/b' }])
+        setAgentStatuses({ 1: 'idle', 2: 'idle', 3: 'idle' })
         layoutReadyRef.current = true
         setLayoutReady(true)
         poll()
@@ -436,5 +494,5 @@ export function useExtensionMessages(
     return () => window.removeEventListener('message', handler)
   }, [getOfficeState])
 
-  return { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets, workspaceFolders, liveFeed }
+  return { agents, selectedAgent, agentTools, agentStatuses, subagentTools, subagentCharacters, layoutReady, loadedAssets, workspaceFolders, liveFeed, liveMeta }
 }
