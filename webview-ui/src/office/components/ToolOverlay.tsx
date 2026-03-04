@@ -21,6 +21,7 @@ function getActivityText(
   agentId: number,
   agentTools: Record<number, ToolActivity[]>,
   isActive: boolean,
+  currentTool?: string | null,
 ): string {
   const tools = agentTools[agentId]
   if (tools && tools.length > 0) {
@@ -36,6 +37,9 @@ function getActivityText(
       if (lastTool) return lastTool.status
     }
   }
+
+  if (isActive && currentTool) return currentTool
+  if (isActive) return 'Working'
 
   return 'Idle'
 }
@@ -108,13 +112,13 @@ export function ToolOverlay({
             activityText = sub ? sub.label : 'Subtask'
           }
         } else {
-          activityText = getActivityText(id, agentTools, ch.isActive)
+          activityText = getActivityText(id, agentTools, ch.isActive, ch.currentTool)
         }
 
         // Determine dot color
         const tools = agentTools[id]
         const hasPermission = subHasPermission || tools?.some((t) => t.permissionWait && !t.done)
-        const hasActiveTools = tools?.some((t) => !t.done)
+        const hasActiveTools = Boolean(tools?.some((t) => !t.done) || (ch.isActive && ch.currentTool))
         const isActive = ch.isActive
 
         let dotColor: string | null = null
