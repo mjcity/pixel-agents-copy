@@ -320,6 +320,19 @@ function App() {
           <div>{officeState.seats.size} total seats</div>
         </div>
         <div style={{ marginBottom: 8 }}>
+          <div style={{ color: '#cbd5e1', marginBottom: 4 }}>Your Uploaded Pack</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+            {[1,2,3,4,5,6].map((n) => (
+              <img
+                key={n}
+                src={`./assets/imported/v5/ref_${n}.jpg`}
+                alt={`Uploaded ref ${n}`}
+                style={{ width: '100%', height: 44, objectFit: 'cover', border: '1px solid #334155' }}
+              />
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom: 8 }}>
           <div style={{ color: '#cbd5e1', marginBottom: 3 }}>Agents</div>
           {agents.map((id) => (
             <div key={id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1f2937', padding: '2px 0' }}>
