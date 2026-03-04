@@ -181,16 +181,24 @@ export function useExtensionMessages(
       }
 
       const poll = async () => {
-        try {
-          const res = await fetch(`./live-status.json?ts=${Date.now()}`, { cache: 'no-store' })
-          if (!res.ok) return
-          const data = await res.json()
-          const stamp = String(data.updated_at || '')
-          if (!stamp || stamp === lastStamp) return
-          lastStamp = stamp
-          applyStatus(String(data.status || 'idle'), String(data.task || ''), data)
-        } catch {
-          // ignore demo polling errors
+        // Realtime source first (local bridge), then static file fallback.
+        const urls = [
+          'http://127.0.0.1:8765/status',
+          `./live-status.json?ts=${Date.now()}`,
+        ]
+        for (const u of urls) {
+          try {
+            const res = await fetch(u, { cache: 'no-store' })
+            if (!res.ok) continue
+            const data = await res.json()
+            const stamp = String(data.updated_at || '')
+            if (!stamp || stamp === lastStamp) return
+            lastStamp = stamp
+            applyStatus(String(data.status || 'idle'), String(data.task || ''), data)
+            return
+          } catch {
+            // try next source
+          }
         }
       }
 
@@ -207,7 +215,7 @@ export function useExtensionMessages(
         poll()
       }
 
-      const id = window.setInterval(poll, 2000)
+      const id = window.setInterval(poll, 500)
       return () => {
         window.clearInterval(id)
         if (doneTimer) window.clearTimeout(doneTimer)

@@ -334,9 +334,12 @@ function App() {
         </div>
         <div style={{ marginBottom: 8 }}>
           <div style={{ color: '#cbd5e1', marginBottom: 3 }}>Agents</div>
-          {agents.map((id) => (
-            <div key={id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #1f2937', padding: '2px 0' }}>
-              <span>Agent {id}</span>
+          {agents.map((id, idx) => (
+            <div key={id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1f2937', padding: '2px 0', gap: 6 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <img src={`./assets/imported/v5/ref_${(idx % 6) + 1}.jpg`} alt={`agent-${id}`} style={{ width: 18, height: 18, objectFit: 'cover', borderRadius: 2, border: '1px solid #475569' }} />
+                Agent {id}
+              </span>
               <span>{agentStatuses[id] || 'active'}</span>
             </div>
           ))}
