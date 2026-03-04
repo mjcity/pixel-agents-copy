@@ -1,9 +1,20 @@
 {
-  "status": "done",
+  "status": "reading",
   "task": "Pre-compaction memory flush. Store durable memories now (use memory/2026-03-03.md; create memory/ if needed). IMPORTANT:",
   "started_at": "2026-03-04T00:11:53Z",
-  "updated_at": "2026-03-04T00:12:02Z",
-  "elapsed_sec": 9,
-  "outcome": "success",
-  "helpers": []
+  "updated_at": "2026-03-04T00:12:03Z",
+  "elapsed_sec": 10,
+  "outcome": "pending",
+  "helpers": [
+    {
+      "id": 2,
+      "status": "reading",
+      "task": "Tool output parsing"
+    },
+    {
+      "id": 3,
+      "status": "working",
+      "task": "Task execution"
+    }
+  ]
 }
