@@ -1,5 +1,20 @@
 {
-  "status": "idle",
+  "status": "reading",
   "task": "Waiting for request",
-  "updated_at": "2026-03-03T23:50:00Z"
+  "started_at": "2026-03-04T00:09:37Z",
+  "updated_at": "2026-03-04T00:09:37Z",
+  "elapsed_sec": 0,
+  "outcome": "pending",
+  "helpers": [
+    {
+      "id": 2,
+      "status": "reading",
+      "task": "Tool output parsing"
+    },
+    {
+      "id": 3,
+      "status": "working",
+      "task": "Task execution"
+    }
+  ]
 }
