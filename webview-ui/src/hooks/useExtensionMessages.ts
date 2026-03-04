@@ -202,51 +202,7 @@ export function useExtensionMessages(
         }
       }
 
-      const loadCustomCharacterTemplates = async () => {
-        try {
-          const toSprite = (img: HTMLImageElement): string[][] => {
-            const w = 16
-            const h = 24
-            const c = document.createElement('canvas')
-            c.width = w
-            c.height = h
-            const x = c.getContext('2d')!
-            x.imageSmoothingEnabled = true
-            x.drawImage(img, 0, 0, w, h)
-            const d = x.getImageData(0, 0, w, h).data
-            const out: string[][] = []
-            for (let r = 0; r < h; r++) {
-              const row: string[] = []
-              for (let col = 0; col < w; col++) {
-                const i = (r * w + col) * 4
-                const rr = d[i], gg = d[i + 1], bb = d[i + 2]
-                // knock out near-white/near-black corners for softer sprite silhouette
-                const nearBg = (rr > 245 && gg > 245 && bb > 245) || (rr < 10 && gg < 10 && bb < 10)
-                row.push(nearBg ? '' : `#${rr.toString(16).padStart(2, '0')}${gg.toString(16).padStart(2, '0')}${bb.toString(16).padStart(2, '0')}`)
-              }
-              out.push(row)
-            }
-            return out
-          }
-
-          const loadImg = (url: string) => new Promise<HTMLImageElement>((resolve, reject) => {
-            const im = new Image()
-            im.crossOrigin = 'anonymous'
-            im.onload = () => resolve(im)
-            im.onerror = reject
-            im.src = url
-          })
-
-          const refs = await Promise.all([1, 2, 3, 4, 5, 6].map(async (n) => toSprite(await loadImg(`./assets/imported/v5/ref_${n}.jpg`))))
-          const mk = (s: string[][]) => ({ down: [s, s, s, s, s, s, s], up: [s, s, s, s, s, s, s], right: [s, s, s, s, s, s, s] })
-          setCharacterTemplates(refs.map((r) => mk(r)))
-        } catch {
-          // keep default templates if conversion fails
-        }
-      }
-
       if (!layoutReadyRef.current) {
-        loadCustomCharacterTemplates()
         os.addAgent(1, 0, 0, undefined, true, 'MjcityBot')
         os.addAgent(2, 1, 0, undefined, true, 'Helper-A')
         os.addAgent(3, 2, 0, undefined, true, 'Helper-B')
